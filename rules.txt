@@ -1,0 +1,22 @@
+1] right (a,2)
+1] right (b,1)
+1] right (#,3)
+
+2] right (a,1)
+2] right (b,2)
+2] right (#,7)
+
+3] left (a,3)
+3] left (b,3)
+3] left (#,4)
+
+4] right (a,4)
+4] right (b,5)
+4] right (#,7)
+
+5] right (b,4)
+5] right (a,5)
+5] right (#,6)
+
+6] accept
+7] reject
