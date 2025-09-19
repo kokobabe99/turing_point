@@ -153,15 +153,12 @@ func buildGraph(lines []rawLine, maxID int) ([]*State, *State, error) {
 		}
 		for _, p := range ln.pairs {
 			toID, _ := strconv.Atoi(p[1])
-			switch p[0][0] {
-			case '#':
-				s.onHash = st[toID]
-			case 'a':
-				s.onA = st[toID]
-			case 'b':
-				s.onB = st[toID]
+			if s.next == nil {
+				s.next = make(map[uint8]*State)
 			}
+			s.next[p[0][0]] = st[toID]
 		}
+
 	}
 	return st, st[1], nil
 }
@@ -181,14 +178,17 @@ func dump(states []*State) {
 			tag += " [REJECT]"
 		}
 		fmt.Printf("%d] dir=%s%s  ", s.id, s.dir, tag)
-		if s.onA != nil {
-			fmt.Printf("(a->%d) ", s.onA.id)
-		}
-		if s.onB != nil {
-			fmt.Printf("(b->%d) ", s.onB.id)
-		}
-		if s.onHash != nil {
-			fmt.Printf("(#->%d) ", s.onHash.id)
+		//if s.onA != nil {
+		//	fmt.Printf("(a->%d) ", s.onA.id)
+		//}
+		//if s.onB != nil {
+		//	fmt.Printf("(b->%d) ", s.onB.id)
+		//}
+		//if s.onHash != nil {
+		//	fmt.Printf("(#->%d) ", s.onHash.id)
+		//}
+		for key, _ := range s.next {
+			fmt.Printf("(%d->%c) ", s.id, key)
 		}
 		fmt.Println()
 	}
@@ -220,14 +220,18 @@ func writeDOT(states []*State, path string) error {
 		}
 		lbl := fmt.Sprintf("%d\\n[%s]", s.id, s.dir)
 		fmt.Fprintf(f, "  %d [label=\"%s\", shape=%s%s];\n", s.id, lbl, shape, color)
-		if s.onA != nil {
-			fmt.Fprintf(f, "  %d -> %d [label=\"a\"];\n", s.id, s.onA.id)
-		}
-		if s.onB != nil {
-			fmt.Fprintf(f, "  %d -> %d [label=\"b\"];\n", s.id, s.onB.id)
-		}
-		if s.onHash != nil {
-			fmt.Fprintf(f, "  %d -> %d [label=\"#\"];\n", s.id, s.onHash.id)
+		//if s.onA != nil {
+		//	fmt.Fprintf(f, "  %d -> %d [label=\"a\"];\n", s.id, s.onA.id)
+		//}
+		//if s.onB != nil {
+		//	fmt.Fprintf(f, "  %d -> %d [label=\"b\"];\n", s.id, s.onB.id)
+		//}
+		//if s.onHash != nil {
+		//	fmt.Fprintf(f, "  %d -> %d [label=\"#\"];\n", s.id, s.onHash.id)
+		//}
+
+		for key, value := range s.next {
+			fmt.Fprintf(f, "  %d -> %d [label=\"%c\"];\n", s.id, value.id, key)
 		}
 	}
 	fmt.Fprintln(f, "}")

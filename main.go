@@ -14,11 +14,11 @@ func parseTapeArg(arg string) (string, error) {
 		return "", fmt.Errorf("tape must be wrapped with #...#")
 	}
 	// 只允许 a / b / #
-	for i := 0; i < len(s); i++ {
-		if s[i] != 'a' && s[i] != 'b' && s[i] != '#' {
-			return "", fmt.Errorf("tape must contain only a/b/#")
-		}
-	}
+	//for i := 0; i < len(s); i++ {
+	//	if s[i] != 'a' && s[i] != 'b' && s[i] != '#' {
+	//		return "", fmt.Errorf("tape must contain only a/b/#")
+	//	}
+	//}
 	return s, nil // 原样返回，不截取 #
 }
 

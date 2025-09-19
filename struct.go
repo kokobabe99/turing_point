@@ -18,27 +18,27 @@ const (
 )
 
 type State struct {
-	id     int
-	dir    Move
-	onHash *State
-	onA    *State
-	onB    *State
+	id  int
+	dir Move
+	//onHash *State
+	//onA    *State
+	//onB    *State
+
+	next   map[uint8]*State
 	accept bool
 	reject bool
 }
 
 // 选边的小工具
 func (s *State) nextOn(sym byte) (*State, error) {
-	switch sym {
-	case 'a':
-		return s.onA, nil
-	case 'b':
-		return s.onB, nil
-	case '#':
-		return s.onHash, nil
-	default:
+
+	if state, ok := s.next[sym]; ok {
+
+		return state, nil
+	} else {
 		return nil, fmt.Errorf("invalid symbol %q", sym)
 	}
+	
 }
 
 func (s *State) Step(tape string, i int) (*State, int, StepStatus, error) {
