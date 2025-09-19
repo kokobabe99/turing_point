@@ -108,7 +108,7 @@ func parseRules(path string) ([]rawLine, int, error) {
 			}
 			sym := strings.TrimSpace(xy[0])
 			to := strings.TrimSpace(xy[1])
-			if len(sym) != 1 || (sym[0] != '#' && sym[0] != 'a' && sym[0] != 'b') {
+			if len(sym) != 1 {
 				return nil, 0, fmt.Errorf("line %d: bad symbol %q", ln, sym)
 			}
 			if _, e := strconv.Atoi(to); e != nil {
