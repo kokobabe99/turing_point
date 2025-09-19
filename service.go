@@ -256,7 +256,6 @@ func highlightIndex(tape string, head int) string {
 	return b.String()
 }
 
-// 显示当前带子（把 head 位置包成 [x]）
 func displayTapeWithHead(tape string, head int) {
 	fmt.Println("Tape :", highlightIndex(tape, head))
 }
