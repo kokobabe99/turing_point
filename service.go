@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func (m Move) String() string {
@@ -272,9 +273,7 @@ func run(tape string, start *State) (bool, error) {
 	fmt.Println("== TRACE START ==")
 
 	for {
-
 		fmt.Printf("=============================================\n")
-
 		nxt, j, st, err := q.Step(tape, i)
 		if err != nil {
 			return false, err
@@ -301,5 +300,6 @@ func run(tape string, start *State) (bool, error) {
 			q, i = nxt, j
 			step++
 		}
+		time.Sleep(1000 * time.Millisecond)
 	}
 }
