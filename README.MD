@@ -50,13 +50,12 @@ Notes:
 ```go
     type State struct {
         id     int
-        dir    Move   // this state's direction (L/R)
-        onHash *State // when reading '#'
-        onA    *State // when reading 'a'
-        onB    *State // when reading 'b'
+        dir    Move
+        next   map[uint8]*State
         accept bool
         reject bool
     }
+
 ```
 
 - One node per state.
