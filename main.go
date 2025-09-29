@@ -362,7 +362,7 @@ func parseTapeArg(arg string) (string, error) {
 		return "", fmt.Errorf("tape must be wrapped with #...#")
 	}
 
-	return s, nil // 原样返回，不截取 #
+	return s, nil
 }
 
 func main() {
