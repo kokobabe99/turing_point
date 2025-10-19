@@ -1,10 +1,10 @@
 # Two-Way Acceptor (2DFA) in Go
 
 A minimal two-way finite-state acceptor in Go.  
-It reads a tape over `{a,b}` with endmarkers `#`, moves the head `LEFT/RIGHT`, and decides `ACCEPT/REJECT` using only:
+It reads a tape over `{a,b}` or unary marks `(0,1)` with endmarkers `#`, moves the head `LEFT/RIGHT`, and decides `ACCEPT/REJECT` using only:
 - the current state pointer (a node in a linked graph), and
 - the head index on the tape.
-
+5
 Given `rules.txt` (the automaton) and a tape like `"#ababb#"`, the program:
 - parses rules into a node-linked graph (each state has its own L/R direction and edges for `#`, `a`, `b`);
 - prints a text graph dump;
