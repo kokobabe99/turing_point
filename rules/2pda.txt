@@ -1,5 +1,24 @@
-// Two-way PDA demo: scan to right #, write stack, scan back to left #, read stack, accept
+# Scan left→right, push many
+1] Scan-right (a,2) (b,5) (#,10)
+2] Write (a,3) (b,3) (#,10)
+3] Scan-right (a,4) (b,4) (#,10)
+4] Write (a,2) (b,2) (#,10)
 
-1] Scan-right (a,1) (b,1) (#,2)
-2] Scan-left  (a,2) (b,2) (#,5)
-5] accept
+# Branch region
+5] Write (a,6) (b,7) (#,10)
+6] Scan-right (a,8) (b,8) (#,10)
+7] Write (a,6) (b,6) (#,10)
+8] Scan-right (a,5) (b,5) (#,10)
+
+# Move back to left
+10] Scan-left (a,10) (b,10) (#,15)
+
+# Start pop section
+15] Read (a,16) (b,17) (#,25)
+16] Read (a,15) (b,15) (#,25)
+17] Read (a,15) (b,15) (#,25)
+
+# return to left again
+25] Scan-left (a,25) (b,25) (#,28)
+
+28] accept

@@ -1,14 +1,21 @@
-// PDA demo: one Scan, one Write (push), one Read (pop), then accept
+# Phase 1: push many
+1] Scan (a,2) (b,10) (#,20)
+2] Write (a,3) (b,3) (#,20)
+3] Scan (a,4) (b,5) (#,20)
+4] Write (a,2) (b,2) (#,20)
+5] Scan (a,6) (b,7) (#,20)
+6] Write (a,3) (b,3) (#,20)
+7] Write (a,8) (b,8) (#,20)
+8] Scan (a,2) (b,2) (#,20)
 
-// 起点：读到 'a' 就转到写栈状态；如果直接遇到 # 就直接接受（等价 trivial）
-1] Scan (a,2) (#,4)
+# Second push section
+10] Write (a,11) (b,12) (#,20)
+11] Write (a,13) (b,13) (#,20)
+12] Scan (a,11) (b,11) (#,20)
+13] Scan (a,12) (b,12) (#,20)
 
-// Write：执行栈 push，不移动 head；根据当前读到的符号继续走
-// 这里假定 head 仍在 '#' 上，所以 ( # ,3 )
-2] Write (#,3)
+# Pop section
+20] Scan (a,21) (b,21) (#,22)
+21] Read (a,21) (b,21) (#,22)
 
-// Read：执行栈 pop，不移动 head；再到 state 4
-3] Read (#,4)
-
-// 最终态
-4] accept
+22] accept

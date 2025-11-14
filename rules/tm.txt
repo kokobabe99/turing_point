@@ -1,10 +1,28 @@
-// TM (read-only): scan to right #, then go back to left #, then accept
+# Phase 1: scan to right (#)
+1] Scan-right (a,2) (b,3) (#,5)
 
-// 从左端 # 后开始，一直向右扫到右端 #
-1] Scan-right (a,1) (b,1) (#,2)
+2] Write b (a,3) (b,4) (#,5)
+3] Write a (a,2) (b,4) (#,5)
+4] Scan-right (a,4) (b,4) (#,5)
 
-// 在右端 #，开始往左扫，一直扫到左端 #
-2] Scan-left (a,2) (b,2) (#,3)
+# Deep processing region
+5] Scan-left (a,6) (b,10) (#,20)
 
-// 左端 # → 接受
-3] accept
+6] Write a (a,7) (b,8)
+7] Write b (a,9) (b,9)
+8] Scan-left (a,9) (b,9) (#,20)
+9] Scan-right (a,6) (b,6) (#,20)
+
+10] Write a (a,11) (b,12)
+11] Write b (a,13) (b,13)
+12] Scan-left (a,13) (b,13) (#,20)
+13] Scan-right (a,10) (b,10) (#,20)
+
+# mid section branch
+20] Scan-right (a,21) (b,22) (#,25)
+21] Write b (a,23) (b,23)
+22] Write a (a,23) (b,23)
+
+23] Scan-left (a,20) (b,20) (#,25)
+
+25] accept

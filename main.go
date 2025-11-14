@@ -367,16 +367,28 @@ func parseRules(path string) ([]rawLine, int, error) {
 }
 
 func buildGraph(lines []rawLine, maxID int) ([]*State, *State, error) {
+	used := make(map[int]bool)
 
-	st := make([]*State, maxID+1)
-	for i := 0; i <= maxID; i++ {
-		st[i] = &State{
-			id:     i,
-			dir:    R,       // 默认向右
-			action: ActScan, // 默认 Scan
+	// 1) 记录所有出现过的 id（当前状态 + 目标状态）
+	for _, ln := range lines {
+		used[ln.id] = true
+		for _, p := range ln.pairs {
+			toID, _ := strconv.Atoi(p[1])
+			used[toID] = true
 		}
 	}
 
+	// 2) 按 used 初始化 states
+	st := make([]*State, maxID+1)
+	for id := range used {
+		st[id] = &State{
+			id:     id,
+			dir:    R,
+			action: ActScan,
+		}
+	}
+
+	// 3) 再把 rules 套进去
 	for _, ln := range lines {
 		s := st[ln.id]
 		if ln.acc {
@@ -397,6 +409,7 @@ func buildGraph(lines []rawLine, maxID int) ([]*State, *State, error) {
 			s.next[p[0][0]] = st[toID]
 		}
 	}
+
 	return st, st[1], nil
 }
 
