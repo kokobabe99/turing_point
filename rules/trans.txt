@@ -1,18 +1,21 @@
-# Phase 1: Scan and print odd-indexed symbols
-1] Scan (a,2) (b,3) (#,20)
-2] Print (a,4) (b,4) (#,20)
-3] Print (a,4) (b,4) (#,20)
+// Transducer: count non-# chars by printing '1' for each,
+// then append "SUM" at the end.
 
-4] Scan (a,5) (b,6) (#,20)
-5] Print (a,7) (b,7) (#,20)
-6] Print (a,7) (b,7) (#,20)
+// 1：扫描输入：
+//  - a 或 b -> 去 2 打印 '1'
+//  - #      -> 去 4 打印 "SUM"
+1] Scan (a,2) (b,2) (#,4)
 
-7] Scan (a,1) (b,1) (#,20)
+// 2：打印 '1' 然后回到 1
+2] Print (1,1)
 
-# Phase 2: reverse scanning for even positions
-20] Scan-left (a,21) (b,22) (#,30)
-21] Print (a,23)
-22] Print (b,23)
-23] Scan-left (a,20) (b,20) (#,30)
+// 4：打印 'S'
+4] Print (S,5)
 
-30] accept
+// 5：打印 'U'
+5] Print (U,6)
+
+// 6：打印 'M' 然后 accept
+6] Print (M,7)
+
+7] accept

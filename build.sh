@@ -10,19 +10,19 @@ go run main.go twa rules/twa.txt "#abbaabba#"
 
 echo
 echo ">>> TM"
-go run main.go tm rules/tm.txt "#abababba#"
+go run main.go tm rules/tm.txt "#abba#"
 
 echo
 echo ">>> PDA"
-go run main.go pda rules/pda.txt "#aaabbaabbb#"
+go run main.go pda rules/pda.txt "#aaabbb#"
 
 echo
 echo ">>> 2PDA"
-go run main.go 2pda rules/2pda.txt "#aaabbbcccbbbaaa#"
+go run main.go 2pda rules/2pda.txt "#aaabbb#"
 
 echo
 echo ">>> Transducer"
-go run main.go transducer rules/trans.txt "#abbaabba#"
+go run main.go transducer rules/trans.txt "#abba#"
 
 echo
 echo "========================"

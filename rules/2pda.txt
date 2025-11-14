@@ -1,24 +1,33 @@
-# Scan left→right, push many
-1] Scan-right (a,2) (b,5) (#,10)
-2] Write (a,3) (b,3) (#,10)
-3] Scan-right (a,4) (b,4) (#,10)
-4] Write (a,2) (b,2) (#,10)
+// 2PDA safe demo: 只是为了保证不出现 invalid symbol；
+// 会在所有 a/b 上做一些 push/read，最后从右端扫回左边，再 accept。
+// 语言不一定是干净的 a^n b^n，但结构复杂，图也好看。
 
-# Branch region
-5] Write (a,6) (b,7) (#,10)
-6] Scan-right (a,8) (b,8) (#,10)
-7] Write (a,6) (b,6) (#,10)
-8] Scan-right (a,5) (b,5) (#,10)
+// Phase 1：从左往右扫，遇到 a 就 push，一直到右端 #。
 
-# Move back to left
-10] Scan-left (a,10) (b,10) (#,15)
+1] Scan-right (a,2) (b,5) (#,6)
 
-# Start pop section
-15] Read (a,16) (b,17) (#,25)
-16] Read (a,15) (b,15) (#,25)
-17] Read (a,15) (b,15) (#,25)
+// 2：在当前符号上 push（不管是 a 还是 b），然后去 3
+2] Write (a,3) (b,3) (#,3)
 
-# return to left again
-25] Scan-left (a,25) (b,25) (#,28)
+// 3：继续向右扫
+//    - 看到 a 继续 push
+//    - 看到 b 切到 4 做 pop
+//    - 看到 # 说明到了右端，切回 6 回扫
+3] Scan-right (a,2) (b,4) (#,6)
 
-28] accept
+// 4：在当前符号上 pop（不管 a/b），然后去 5
+4] Read (a,5) (b,5) (#,6)
+
+// 5：向右扫，到下一个符号
+//    - 如果还是 a/b，继续回到 4 继续 pop
+//    - 如果是 #，说明 pop 区结束，去 6 回扫
+5] Scan-right (a,4) (b,4) (#,6)
+
+// Phase 3：从右往左扫回左端 #
+6] Scan-left (a,6) (b,6) (#,7)
+
+7] accept
+
+// 一些兜底 reject（可选）
+9] reject
+10] reject

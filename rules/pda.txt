@@ -1,21 +1,32 @@
-# Phase 1: push many
-1] Scan (a,2) (b,10) (#,20)
-2] Write (a,3) (b,3) (#,20)
-3] Scan (a,4) (b,5) (#,20)
-4] Write (a,2) (b,2) (#,20)
-5] Scan (a,6) (b,7) (#,20)
-6] Write (a,3) (b,3) (#,20)
-7] Write (a,8) (b,8) (#,20)
-8] Scan (a,2) (b,2) (#,20)
+// PDA: a^n b^n over {a,b}
 
-# Second push section
-10] Write (a,11) (b,12) (#,20)
-11] Write (a,13) (b,13) (#,20)
-12] Scan (a,11) (b,11) (#,20)
-13] Scan (a,12) (b,12) (#,20)
+// 1：起点
+//  - 看到 a -> 去 2 做 push
+//  - 看到 b -> 提前进入 pop 区，后面会 underflow
+//  - 看到 # -> 空串，直接 accept（算 n=0）
+1] Scan (a,2) (b,5) (#,8)
 
-# Pop section
-20] Scan (a,21) (b,21) (#,22)
-21] Read (a,21) (b,21) (#,22)
+// 2：在 a 上 push，然后去 3
+2] Write (a,3)
 
-22] accept
+// 3：继续扫描：
+//  - 再看到 a -> 回 2 继续 push
+//  - 看到 b -> 进入 pop 区 5
+//  - 看到 # -> 没有 b 就到头，后面 pop 会 underflow
+3] Scan (a,2) (b,5) (#,8)
+
+// 5：开始 pop 区：
+//  - 看到 b -> 去 6 做一次 Read
+//  - 看到 a -> pattern 错了（b 后又出现 a），去 9 reject
+//  - 看到 # -> b 区已经结束，去 8（依赖之前 Read 检查 underflow）
+5] Scan (b,6) (a,9) (#,8)
+
+// 6：在 b 上 pop 一次，然后回 5 继续扫描
+//  - 如果栈不够，会在 Step 里 stack underflow -> Reject
+6] Read (b,5) (#,8)
+
+// 8：accept
+8] accept
+
+// pattern 错误
+9] reject

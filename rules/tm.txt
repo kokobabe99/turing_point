@@ -1,28 +1,23 @@
-# Phase 1: scan to right (#)
-1] Scan-right (a,2) (b,3) (#,5)
+// TM: check input has at least one 'a' and at least one 'b',
+// then scan back to left '#'.
 
-2] Write b (a,3) (b,4) (#,5)
-3] Write a (a,2) (b,4) (#,5)
-4] Scan-right (a,4) (b,4) (#,5)
+// 状态 1：尚未见到 a，也未见到 b
+1] Scan-right (a,2) (b,3) (#,7)
 
-# Deep processing region
-5] Scan-left (a,6) (b,10) (#,20)
+// 状态 2：见过 a，未见过 b
+2] Scan-right (a,2) (b,4) (#,7)
 
-6] Write a (a,7) (b,8)
-7] Write b (a,9) (b,9)
-8] Scan-left (a,9) (b,9) (#,20)
-9] Scan-right (a,6) (b,6) (#,20)
+// 状态 3：见过 b，未见过 a
+3] Scan-right (a,4) (b,3) (#,7)
 
-10] Write a (a,11) (b,12)
-11] Write b (a,13) (b,13)
-12] Scan-left (a,13) (b,13) (#,20)
-13] Scan-right (a,10) (b,10) (#,20)
+// 状态 4：已经同时见过 a 和 b
+4] Scan-right (a,4) (b,4) (#,8)
 
-# mid section branch
-20] Scan-right (a,21) (b,22) (#,25)
-21] Write b (a,23) (b,23)
-22] Write a (a,23) (b,23)
+// 7：扫描完但没同时见到 a 和 b
+7] reject
 
-23] Scan-left (a,20) (b,20) (#,25)
+// 8：从右端 # 开始往左扫，回到左端 #
+8] Scan-left (a,8) (b,8) (#,9)
 
-25] accept
+// 9：accept
+9] accept
