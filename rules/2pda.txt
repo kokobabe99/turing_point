@@ -1,0 +1,5 @@
+// Two-way PDA demo: scan to right #, write stack, scan back to left #, read stack, accept
+
+1] Scan-right (a,1) (b,1) (#,2)
+2] Scan-left  (a,2) (b,2) (#,5)
+5] accept

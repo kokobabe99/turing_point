@@ -1,0 +1,10 @@
+// TM (read-only): scan to right #, then go back to left #, then accept
+
+// 从左端 # 后开始，一直向右扫到右端 #
+1] Scan-right (a,1) (b,1) (#,2)
+
+// 在右端 #，开始往左扫，一直扫到左端 #
+2] Scan-left (a,2) (b,2) (#,3)
+
+// 左端 # → 接受
+3] accept

@@ -1,0 +1,5 @@
+1] Scan-right (a,2) (b,2) (#,3)
+2] Scan-right (a,1) (b,1) (#,4)
+
+3] accept
+4] reject
