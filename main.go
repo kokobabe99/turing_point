@@ -245,16 +245,29 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 
 	// 按机器类型移动 head
 	switch rt.Kind {
-	case KindTWA, KindTM:
+	case KindTWA:
+		// two-way automaton：把 '#' 当作边界符号，读到时可以换 state，但不移动 head
+		if cur != '#' {
+			if nxt.dir == L {
+				rt.Head--
+			} else {
+				rt.Head++
+			}
+		}
+
+	case KindTM:
+		// 如果你以后想 TM 也把 '#' 当边界，也可以仿照上面再改
 		if nxt.dir == L {
 			rt.Head--
 		} else {
 			rt.Head++
 		}
+
 	case KindPDA:
-		if s.action == ActScan {
+		if cur != '#' {
 			rt.Head++
 		}
+
 	case KindTwoWayPDA:
 		if s.action == ActScan {
 			if nxt.dir == L {
@@ -263,15 +276,15 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 				rt.Head++
 			}
 		}
+
 	case KindTransducer:
-		// ✅ 这里加上 cur != '#' 的判断
 		if s.action == ActScan && cur != '#' {
 			rt.Head++
 		}
+
 	default:
 		rt.Head++
 	}
-
 	if rt.Head < 0 || rt.Head >= len(rt.Tape) {
 		return nxt, Reject, fmt.Errorf("head moved out of tape: %d", rt.Head)
 	}

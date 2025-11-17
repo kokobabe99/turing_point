@@ -1,9 +1,9 @@
 digraph FSM {
   rankdir=LR; node [shape=circle, fontname="Arial"];
   1 [label="1\n[Scan,R]", shape=circle];
-  1 -> 4 [label="#"];
   1 -> 2 [label="a"];
   1 -> 2 [label="b"];
+  1 -> 4 [label="#"];
   2 [label="2\n[Print,R]", shape=circle];
   2 -> 1 [label="_"];
   4 [label="4\n[Print,R]", shape=circle];

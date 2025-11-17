@@ -9,9 +9,9 @@ digraph FSM {
   2 -> 4 [label="b"];
   2 -> 7 [label="#"];
   3 [label="3\n[Scan,R]", shape=circle];
+  3 -> 7 [label="#"];
   3 -> 4 [label="a"];
   3 -> 3 [label="b"];
-  3 -> 7 [label="#"];
   4 [label="4\n[Scan,R]", shape=circle];
   4 -> 4 [label="a"];
   4 -> 4 [label="b"];
