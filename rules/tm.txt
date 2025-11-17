@@ -1,23 +1,18 @@
-// TM: check input has at least one 'a' and at least one 'b',
-// then scan back to left '#'.
 
-// 状态 1：尚未见到 a，也未见到 b
-1] Scan-right (a,2) (b,3) (#,7)
+1] Scan-right (a,2) (b,8) (#,8)
 
-// 状态 2：见过 a，未见过 b
-2] Scan-right (a,2) (b,4) (#,7)
+2] Scan-right (a,3) (b,8) (#,8)
 
-// 状态 3：见过 b，未见过 a
-3] Scan-right (a,4) (b,3) (#,7)
+3] Scan-right (b,4) (a,8) (#,8)
 
-// 状态 4：已经同时见过 a 和 b
-4] Scan-right (a,4) (b,4) (#,8)
+4] Scan-right (b,5) (a,8) (#,8)
 
-// 7：扫描完但没同时见到 a 和 b
-7] reject
+5] Scan-right (a,6) (b,8) (#,8)
 
-// 8：从右端 # 开始往左扫，回到左端 #
-8] Scan-left (a,8) (b,8) (#,9)
+6] Scan-right (a,7) (b,8) (#,8)
 
-// 9：accept
-9] accept
+7] Scan-right (a,8) (b,8) (#,10)
+
+8] reject
+
+10] accept

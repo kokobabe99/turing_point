@@ -1,21 +1,6 @@
-// Transducer: count non-# chars by printing '1' for each,
-// then append "SUM" at the end.
-
-// 1：扫描输入：
-//  - a 或 b -> 去 2 打印 '1'
-//  - #      -> 去 4 打印 "SUM"
-1] Scan (a,2) (b,2) (#,4)
-
-// 2：打印 '1' 然后回到 1
-2] Print (1,1)
-
-// 4：打印 'S'
-4] Print (S,5)
-
-// 5：打印 'U'
-5] Print (U,6)
-
-// 6：打印 'M' 然后 accept
-6] Print (M,7)
-
-7] accept
+1] scan (0,2)(1,4)
+2] scan (0,3)(1,5)
+3] scan (0,1)(1,6)
+4] print (a,1)
+5] print (b,1)
+6] print (c,1)

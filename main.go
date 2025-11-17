@@ -169,6 +169,7 @@ func (s *State) nextOn(sym byte) (*State, error) {
 }
 
 func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
+	// 显示 tape
 	displayTapeWithHead(string(rt.Tape), rt.Head)
 
 	if rt.Head < 0 || rt.Head >= len(rt.Tape) {
@@ -176,6 +177,14 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 	}
 
 	cur := rt.Tape[rt.Head]
+
+	// ==== Transducer 在最后一个 # 上（非 Print 状态）提前结束 ====
+	if rt.Kind == KindTransducer &&
+		cur == '#' &&
+		rt.Head == len(rt.Tape)-1 &&
+		s.action != ActPrint {
+		return s, Accept, nil
+	}
 
 	// ---------- Print 特殊处理 ----------
 	if s.action == ActPrint {
@@ -196,19 +205,21 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 		if s.printSym == 0 {
 			return nil, Reject, fmt.Errorf("print state %d has no printSym", s.id)
 		}
+
+		// 输出符号
 		rt.Output = append(rt.Output, s.printSym)
 
+		// Print 不动 head，直接检查 accept/reject
 		if nxt.accept {
 			return nxt, Accept, nil
 		}
 		if nxt.reject {
 			return nxt, Reject, nil
 		}
-		// Print 不移动 head
 		return nxt, Continue, nil
 	}
 
-	// ---------- 普通分支 ----------
+	// ---------- 普通分支：根据当前读到的符号走转移 ----------
 	nxt, err := s.nextOn(cur)
 	if err != nil {
 		return nil, Reject, err
@@ -217,46 +228,40 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 		return nil, Reject, fmt.Errorf("missing transition: state %d on %q", s.id, cur)
 	}
 
-	if nxt.accept {
-		return nxt, Accept, nil
-	}
-	if nxt.reject {
-		return nxt, Reject, nil
-	}
-
-	// 执行动作
+	// ---------- 执行动作 ----------
 	switch s.action {
 	case ActNone, ActScan:
-		// nothing
+		// do nothing
+
 	case ActWriteTape:
 		rt.Tape[rt.Head] = s.writeSym
+
 	case ActPushStack:
-		rt.Stack = append(rt.Stack, s.stackSym)
+		// ★ 只在当前符号与 stackSym 匹配时 push
+		//   对于你的 a^n b^n 规则：state 2 的 stackSym = 'a'
+		if s.stackSym == 0 || cur == s.stackSym {
+			rt.Stack = append(rt.Stack, s.stackSym)
+		}
+
 	case ActPopStack:
-		if len(rt.Stack) == 0 {
-			return nxt, Reject, fmt.Errorf("stack underflow at state %d", s.id)
+		// ★ 对 PDA/2PDA：在 '#' 上不要 pop，避免多弹一格
+		if (rt.Kind == KindPDA || rt.Kind == KindTwoWayPDA) && cur == '#' {
+			// 不弹栈，等会儿用 empty-stack 检查
+		} else {
+			if len(rt.Stack) == 0 {
+				return nxt, Reject, fmt.Errorf("stack underflow at state %d", s.id)
+			}
+			top := rt.Stack[len(rt.Stack)-1]
+			if s.stackSym != 0 && top != s.stackSym {
+				return nxt, Reject, fmt.Errorf("unexpected stack top %q at state %d", top, s.id)
+			}
+			rt.Stack = rt.Stack[:len(rt.Stack)-1]
 		}
-		top := rt.Stack[len(rt.Stack)-1]
-		if s.stackSym != 0 && top != s.stackSym {
-			return nxt, Reject, fmt.Errorf("unexpected stack top %q at state %d", top, s.id)
-		}
-		rt.Stack = rt.Stack[:len(rt.Stack)-1]
 	}
 
-	// 按机器类型移动 head
+	// ---------- 移动 head ----------
 	switch rt.Kind {
-	case KindTWA:
-		// two-way automaton：把 '#' 当作边界符号，读到时可以换 state，但不移动 head
-		if cur != '#' {
-			if nxt.dir == L {
-				rt.Head--
-			} else {
-				rt.Head++
-			}
-		}
-
-	case KindTM:
-		// 如果你以后想 TM 也把 '#' 当边界，也可以仿照上面再改
+	case KindTWA, KindTM:
 		if nxt.dir == L {
 			rt.Head--
 		} else {
@@ -264,12 +269,13 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 		}
 
 	case KindPDA:
+		// one-way PDA：读到 '#' 不再右移
 		if cur != '#' {
 			rt.Head++
 		}
 
 	case KindTwoWayPDA:
-		if s.action == ActScan {
+		if cur != '#' {
 			if nxt.dir == L {
 				rt.Head--
 			} else {
@@ -285,8 +291,27 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 	default:
 		rt.Head++
 	}
+
 	if rt.Head < 0 || rt.Head >= len(rt.Tape) {
 		return nxt, Reject, fmt.Errorf("head moved out of tape: %d", rt.Head)
+	}
+
+	// ---------- 统一的 accept/reject 检查 ----------
+	if nxt.accept {
+		// ★ PDA / 2PDA：empty-stack accept
+		if rt.Kind == KindPDA || rt.Kind == KindTwoWayPDA {
+			if len(rt.Stack) == 0 {
+				return nxt, Accept, nil
+			}
+			// 栈没空 -> 视为拒绝
+			return nxt, Reject, nil
+		}
+		// 其他机器：final-state accept
+		return nxt, Accept, nil
+	}
+
+	if nxt.reject {
+		return nxt, Reject, nil
 	}
 
 	return nxt, Continue, nil
@@ -490,6 +515,13 @@ func buildGraph(lines []rawLine, maxID int) ([]*State, *State, error) {
 		if ln.action == ActPrint {
 			s.printSym = ln.outSym
 		}
+		// ★ 对 Push 状态：自动把第一个转移的输入符号记录到 stackSym
+		if ln.action == ActPushStack && len(ln.pairs) > 0 {
+			symStr := ln.pairs[0][0] // 第一个 pair 的符号字符串，比如 "a"
+			if len(symStr) > 0 {
+				s.stackSym = symStr[0] // 只取一个字节
+			}
+		}
 		for _, p := range ln.pairs {
 			toID, _ := strconv.Atoi(p[1])
 			if st[toID] == nil {
@@ -591,7 +623,7 @@ func machineKindToString(k MachineKind) string {
 	}
 }
 
-func writeDOT(states []*State, path string) error {
+func writeDOT(states []*State, path string, kind MachineKind) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -600,6 +632,7 @@ func writeDOT(states []*State, path string) error {
 
 	fmt.Fprintln(f, "digraph FSM {")
 	fmt.Fprintln(f, `  rankdir=LR; node [shape=circle, fontname="Arial"];`)
+
 	for id := 1; id < len(states); id++ {
 		s := states[id]
 		if s == nil {
@@ -608,6 +641,7 @@ func writeDOT(states []*State, path string) error {
 		if len(s.next) == 0 && !s.accept && !s.reject {
 			continue
 		}
+
 		shape := "circle"
 		color := ""
 		if s.accept {
@@ -618,13 +652,26 @@ func writeDOT(states []*State, path string) error {
 			shape = "octagon"
 			color = `, color="red"`
 		}
-		lbl := fmt.Sprintf("%d\\n[%s,%s]", s.id, actionName(s.action), dirStr(s.dir))
-		fmt.Fprintf(f, "  %d [label=\"%s\", shape=%s%s];\n", s.id, lbl, shape, color)
+
+		// ====== ★ 根据机器类型决定是否显示方向 ======
+		var lbl string
+		if kind == KindTransducer || kind == KindTM {
+			// TM / Trans 不显示方向，只显示 action
+			lbl = fmt.Sprintf("%d\\n[%s]", s.id, actionName(s.action))
+		} else {
+			// 其他机器保留方向
+			lbl = fmt.Sprintf("%d\\n[%s,%s]", s.id, actionName(s.action), dirStr(s.dir))
+		}
+
+		fmt.Fprintf(f, "  %d [label=\"%s\", shape=%s%s];\n",
+			s.id, lbl, shape, color)
 
 		for key, value := range s.next {
-			fmt.Fprintf(f, "  %d -> %d [label=\"%c\"];\n", s.id, value.id, key)
+			fmt.Fprintf(f, "  %d -> %d [label=\"%c\"];\n",
+				s.id, value.id, key)
 		}
 	}
+
 	fmt.Fprintln(f, "}")
 	return nil
 }
@@ -784,7 +831,7 @@ func main() {
 
 	base := filepath.Base(rulesPath)
 	dotName := fmt.Sprintf("%s.dot", strings.ReplaceAll(base, ".txt", ""))
-	if err := writeDOT(states, "dots"+"/"+dotName); err != nil {
+	if err := writeDOT(states, "dots"+"/"+dotName, kind); err != nil {
 		fmt.Println("dot error:", err)
 		return
 	}

@@ -1,32 +1,5 @@
-// PDA: a^n b^n over {a,b}
-
-// 1：起点
-//  - 看到 a -> 去 2 做 push
-//  - 看到 b -> 提前进入 pop 区，后面会 underflow
-//  - 看到 # -> 空串，直接 accept（算 n=0）
-1] Scan (a,2) (b,5) (#,8)
-
-// 2：在 a 上 push，然后去 3
-2] Write (a,3)
-
-// 3：继续扫描：
-//  - 再看到 a -> 回 2 继续 push
-//  - 看到 b -> 进入 pop 区 5
-//  - 看到 # -> 没有 b 就到头，后面 pop 会 underflow
-3] Scan (a,3) (b,5) (#,8)
-
-// 5：开始 pop 区：
-//  - 看到 b -> 去 6 做一次 Read
-//  - 看到 a -> pattern 错了（b 后又出现 a），去 9 reject
-//  - 看到 # -> b 区已经结束，去 8（依赖之前 Read 检查 underflow）
-5] Scan (b,6) (a,9) (#,8)
-
-// 6：在 b 上 pop 一次，然后回 5 继续扫描
-//  - 如果栈不够，会在 Step 里 stack underflow -> Reject
-6] Read (b,5) (#,8)
-
-// 8：accept
+1] Scan (a,2) (b,9) (#,9)
+2] Write (a,2) (b,3)
+3] Read  (b,3) (#,8) (a,9)
 8] accept
-
-// pattern 错误
 9] reject
