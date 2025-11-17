@@ -87,12 +87,8 @@ func main() {
 	m.Dump()
 
 	base := filepath.Base(rulesPath)
-	dotName := fmt.Sprintf("%s_%s.dot",
-		strings.TrimSuffix(base, ".txt"),
-		machineKindToString(kind),
-	)
-	_ = os.MkdirAll("dots", 0755)
-	if err := m.WriteDOT("dots/" + dotName); err != nil {
+	dotName := fmt.Sprintf("%s.dot", strings.ReplaceAll(base, ".txt", ""))
+	if err := m.WriteDOT("dots" + "/" + dotName); err != nil {
 		fmt.Println("dot error:", err)
 		return
 	}
