@@ -1,33 +1,28 @@
-// 2PDA safe demo: 只是为了保证不出现 invalid symbol；
-// 会在所有 a/b 上做一些 push/read，最后从右端扫回左边，再 accept。
-// 语言不一定是干净的 a^n b^n，但结构复杂，图也好看。
+// 2PDA demo: L = { a^n b^n | n>=1 } U { a^n c^n | n>=1 }
 
-// Phase 1：从左往右扫，遇到 a 就 push，一直到右端 #。
+// 状态 1: 读取第一个字符，必须是 a
+1] Scan (a,2) (b,9) (c,9) (#,9)
 
-1] Scan-right (a,2) (b,5) (#,6)
+// 状态 2: still 在 a 区段
+// - 读到 a：继续 push1
+// - 读到 b：转入“b 分支”的 pop 阶段 (state 3)
+// - 读到 c：转入“c 分支”的 pop 阶段 (state 5)
+// - 遇到 '#'：说明没有后半段，reject
+2] Write1 (a,2) (b,3) (c,5) (#,9)
 
-// 2：在当前符号上 push（不管是 a 还是 b），然后去 3
-2] Write (a,3) (b,3)
+// 状态 3: b 分支，pop a 对应的 b
+// - 读到 b：Pop1（弹一个 a），继续 stay in 3
+// - 读到 c：不允许（a^n b^m c^k 不在语言里），reject
+// - 读到 '#': 结束，转 8；由 empty-stack accept 来检查栈是否正好空
+3] Read1 (b,3) (c,9) (#,8)
 
-// 3：继续向右扫
-//    - 看到 a 继续 push
-//    - 看到 b 切到 4 做 pop
-//    - 看到 # 说明到了右端，切回 6 回扫
-3] Scan-right (a,2) (b,4) (#,6)
+// 状态 5: c 分支，pop a 对应的 c
+// - 读到 c：Pop1，继续 5
+// - 读到 b：不允许（a^n c^m b^k 不在语言里），reject
+// - 读到 '#': 结束，转 8；由 empty-stack accept 来检查栈是否正好空
+5] Read1 (c,5) (b,9) (#,8)
 
-// 4：在当前符号上 pop（不管 a/b），然后去 5
-4] Read (a,5) (b,5) (#,6)
-
-// 5：向右扫，到下一个符号
-//    - 如果还是 a/b，继续回到 4 继续 pop
-//    - 如果是 #，说明 pop 区结束，去 6 回扫
-5] Scan-right (a,4) (b,4) (#,6)
-
-// Phase 3：从右往左扫回左端 #
-6] Scan-left (a,6) (b,6) (#,7)
-
-7] accept
-
-// 一些兜底 reject（可选）
+// 8: accept（2pda 模式下：两个栈都必须空）
+// 9: reject
+8] accept
 9] reject
-10] reject

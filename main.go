@@ -42,19 +42,23 @@ const (
 	KindTWA        MachineKind = iota // Two-way automaton
 	KindTM                            // Turing Machine
 	KindPDA                           // one-way PDA
-	KindTwoWayPDA                     // two-way PDA
+	KindTwoWayPDA                     // two-way PDA (这里当作 2-stack PDA)
 	KindTransducer                    // generalized transducer
 )
 
 type Action int
 
 const (
-	ActNone      Action = iota
-	ActScan             // 仅扫描输入
-	ActWriteTape        // TM: 写 tape（暂未从规则中解析）
-	ActPushStack        // PDA: push
-	ActPopStack         // PDA: pop
-	ActPrint            // Transducer: Moore-style 打印
+	ActNone Action = iota
+	ActScan
+	ActWriteTape
+
+	ActPush1
+	ActPop1
+	ActPush2
+	ActPop2
+
+	ActPrint
 )
 
 /* ===================== 状态定义 ===================== */
@@ -68,7 +72,7 @@ type State struct {
 
 	action   Action
 	writeSym byte // ActWriteTape（当前未使用）
-	stackSym byte // ActPushStack / ActPopStack（栈符号，如需可在代码里手动配置）
+	stackSym byte // Push/Pop 使用的栈符号
 	printSym byte // ActPrint 输出的符号
 }
 
@@ -89,7 +93,8 @@ type rawLine struct {
 type Runtime struct {
 	Tape   []byte
 	Head   int
-	Stack  []byte
+	Stack  []byte // 栈1
+	Stack2 []byte // 栈2（2PDA 用）
 	Output []byte
 	Kind   MachineKind
 }
@@ -108,17 +113,25 @@ func parseDirWord(w string) (Move, bool) {
 }
 
 func parseActionWord(w string) (Action, bool) {
-	switch strings.ToLower(strings.TrimSpace(w)) {
+	s := strings.ToLower(strings.TrimSpace(w))
+	switch s {
 	case "scan":
 		return ActScan, true
-	case "read":
-		return ActPopStack, true
-	case "write":
-		return ActPushStack, true
-	case "print":
-		return ActPrint, true
 	case "none":
 		return ActNone, true
+	case "print":
+		return ActPrint, true
+
+	// 兼容旧的 Write/Read（默认栈1）
+	case "write", "write1", "push", "push1":
+		return ActPush1, true
+	case "write2", "push2":
+		return ActPush2, true
+
+	case "read", "read1", "pop", "pop1":
+		return ActPop1, true
+	case "read2", "pop2":
+		return ActPop2, true
 	default:
 		return ActNone, false
 	}
@@ -127,7 +140,7 @@ func parseActionWord(w string) (Action, bool) {
 // 解析 mode：
 //   - "left" / "right"
 //   - "scan-left" / "scan right"
-//   - "scan" / "read" / "write"（Print 由专门分支处理）
+//   - "scan" / "read"/"write"/"write1"/"write2"/"read1"/"read2"
 func parseMode(s string) (Move, Action, error) {
 	orig := s
 	s = strings.TrimSpace(s)
@@ -169,7 +182,6 @@ func (s *State) nextOn(sym byte) (*State, error) {
 }
 
 func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
-	// 显示 tape
 	displayTapeWithHead(string(rt.Tape), rt.Head)
 
 	if rt.Head < 0 || rt.Head >= len(rt.Tape) {
@@ -178,7 +190,7 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 
 	cur := rt.Tape[rt.Head]
 
-	// ==== Transducer 在最后一个 # 上（非 Print 状态）提前结束 ====
+	// ==== Transducer 在最后一个 '#'（非 Print 状态）提前结束 ====
 	if rt.Kind == KindTransducer &&
 		cur == '#' &&
 		rt.Head == len(rt.Tape)-1 &&
@@ -206,20 +218,19 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 			return nil, Reject, fmt.Errorf("print state %d has no printSym", s.id)
 		}
 
-		// 输出符号
 		rt.Output = append(rt.Output, s.printSym)
 
-		// Print 不动 head，直接检查 accept/reject
 		if nxt.accept {
 			return nxt, Accept, nil
 		}
 		if nxt.reject {
 			return nxt, Reject, nil
 		}
+		// Print 不移动 head
 		return nxt, Continue, nil
 	}
 
-	// ---------- 普通分支：根据当前读到的符号走转移 ----------
+	// ---------- 普通分支 ----------
 	nxt, err := s.nextOn(cur)
 	if err != nil {
 		return nil, Reject, err
@@ -231,35 +242,53 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 	// ---------- 执行动作 ----------
 	switch s.action {
 	case ActNone, ActScan:
-		// do nothing
+		// nothing
 
 	case ActWriteTape:
 		rt.Tape[rt.Head] = s.writeSym
 
-	case ActPushStack:
-		// ★ 只在当前符号与 stackSym 匹配时 push
-		//   对于你的 a^n b^n 规则：state 2 的 stackSym = 'a'
+	case ActPush1:
+		// 栈1：只在当前读到 stackSym 时 push
 		if s.stackSym == 0 || cur == s.stackSym {
 			rt.Stack = append(rt.Stack, s.stackSym)
 		}
 
-	case ActPopStack:
-		// ★ 对 PDA/2PDA：在 '#' 上不要 pop，避免多弹一格
+	case ActPop1:
+		// PDA/2PDA：在 '#' 上不 pop，留给 empty-stack 检查
 		if (rt.Kind == KindPDA || rt.Kind == KindTwoWayPDA) && cur == '#' {
-			// 不弹栈，等会儿用 empty-stack 检查
+			// do nothing
 		} else {
 			if len(rt.Stack) == 0 {
-				return nxt, Reject, fmt.Errorf("stack underflow at state %d", s.id)
+				return nxt, Reject, fmt.Errorf("stack1 underflow at state %d", s.id)
 			}
 			top := rt.Stack[len(rt.Stack)-1]
 			if s.stackSym != 0 && top != s.stackSym {
-				return nxt, Reject, fmt.Errorf("unexpected stack top %q at state %d", top, s.id)
+				return nxt, Reject, fmt.Errorf("stack1 unexpected top %q at state %d", top, s.id)
 			}
 			rt.Stack = rt.Stack[:len(rt.Stack)-1]
 		}
+
+	case ActPush2:
+		if s.stackSym == 0 || cur == s.stackSym {
+			rt.Stack2 = append(rt.Stack2, s.stackSym)
+		}
+
+	case ActPop2:
+		if (rt.Kind == KindPDA || rt.Kind == KindTwoWayPDA) && cur == '#' {
+			// do nothing
+		} else {
+			if len(rt.Stack2) == 0 {
+				return nxt, Reject, fmt.Errorf("stack2 underflow at state %d", s.id)
+			}
+			top := rt.Stack2[len(rt.Stack2)-1]
+			if s.stackSym != 0 && top != s.stackSym {
+				return nxt, Reject, fmt.Errorf("stack2 unexpected top %q at state %d", top, s.id)
+			}
+			rt.Stack2 = rt.Stack2[:len(rt.Stack2)-1]
+		}
 	}
 
-	// ---------- 移动 head ----------
+	// ---------- 按机器类型移动 head ----------
 	switch rt.Kind {
 	case KindTWA, KindTM:
 		if nxt.dir == L {
@@ -269,18 +298,14 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 		}
 
 	case KindPDA:
-		// one-way PDA：读到 '#' 不再右移
 		if cur != '#' {
 			rt.Head++
 		}
 
 	case KindTwoWayPDA:
+		// 2-stack PDA: one-way，只向右扫
 		if cur != '#' {
-			if nxt.dir == L {
-				rt.Head--
-			} else {
-				rt.Head++
-			}
+			rt.Head++
 		}
 
 	case KindTransducer:
@@ -298,12 +323,18 @@ func (s *State) Step(rt *Runtime) (*State, StepStatus, error) {
 
 	// ---------- 统一的 accept/reject 检查 ----------
 	if nxt.accept {
-		// ★ PDA / 2PDA：empty-stack accept
-		if rt.Kind == KindPDA || rt.Kind == KindTwoWayPDA {
+		if rt.Kind == KindPDA {
+			// 1-stack PDA：栈1空
 			if len(rt.Stack) == 0 {
 				return nxt, Accept, nil
 			}
-			// 栈没空 -> 视为拒绝
+			return nxt, Reject, nil
+		}
+		if rt.Kind == KindTwoWayPDA {
+			// 2-stack PDA：两个栈都空
+			if len(rt.Stack) == 0 && len(rt.Stack2) == 0 {
+				return nxt, Accept, nil
+			}
 			return nxt, Reject, nil
 		}
 		// 其他机器：final-state accept
@@ -383,7 +414,7 @@ func parseRules(path string) ([]rawLine, int, error) {
 			if lp < 0 || rp < 0 || rp < lp {
 				return nil, 0, fmt.Errorf("line %d: bad print syntax", ln)
 			}
-			inside := strings.TrimSpace(after[lp+1 : rp]) // "1,4"
+			inside := strings.TrimSpace(after[lp+1 : rp]) // "a,4"
 			xy := strings.Split(inside, ",")
 			if len(xy) != 2 {
 				return nil, 0, fmt.Errorf("line %d: bad print pair", ln)
@@ -407,7 +438,6 @@ func parseRules(path string) ([]rawLine, int, error) {
 				action: ActPrint,
 				outSym: symStr[0],
 			}
-			// key '_' 作为无条件转移
 			rl.pairs = append(rl.pairs, [2]string{"_", nextStr})
 
 			if v, _ := strconv.Atoi(nextStr); v > maxID {
@@ -419,8 +449,8 @@ func parseRules(path string) ([]rawLine, int, error) {
 			}
 			continue
 		}
-		// -------- 普通模式行： Scan-left / Scan-right / Read / Write ... --------
 
+		// -------- 普通模式行： Scan-left / Scan-right / Read / Write ... --------
 		lp := strings.IndexByte(rest, '(')
 		if lp < 0 {
 			return nil, 0, fmt.Errorf("line %d: missing '('", ln)
@@ -512,16 +542,18 @@ func buildGraph(lines []rawLine, maxID int) ([]*State, *State, error) {
 				s.action = ln.action
 			}
 		}
+		// Print 输出符号
 		if ln.action == ActPrint {
 			s.printSym = ln.outSym
 		}
-		// ★ 对 Push 状态：自动把第一个转移的输入符号记录到 stackSym
-		if ln.action == ActPushStack && len(ln.pairs) > 0 {
-			symStr := ln.pairs[0][0] // 第一个 pair 的符号字符串，比如 "a"
+		// Push1 / Push2：自动记录第一个转移的输入符号为 stackSym
+		if (ln.action == ActPush1 || ln.action == ActPush2) && len(ln.pairs) > 0 {
+			symStr := ln.pairs[0][0]
 			if len(symStr) > 0 {
-				s.stackSym = symStr[0] // 只取一个字节
+				s.stackSym = symStr[0]
 			}
 		}
+
 		for _, p := range ln.pairs {
 			toID, _ := strconv.Atoi(p[1])
 			if st[toID] == nil {
@@ -552,7 +584,7 @@ func validateNoWriteOnHash(states []*State, kind MachineKind) error {
 		if s == nil {
 			continue
 		}
-		if s.action == ActPushStack && s.next != nil {
+		if (s.action == ActPush1 || s.action == ActPush2) && s.next != nil {
 			if _, hasHash := s.next['#']; hasHash {
 				return fmt.Errorf("PDA/2PDA state %d: Write on '#' is not allowed", s.id)
 			}
@@ -569,10 +601,14 @@ func actionName(a Action) string {
 		return "Scan"
 	case ActWriteTape:
 		return "WTape"
-	case ActPushStack:
-		return "Push"
-	case ActPopStack:
-		return "Pop"
+	case ActPush1:
+		return "Push1"
+	case ActPop1:
+		return "Pop1"
+	case ActPush2:
+		return "Push2"
+	case ActPop2:
+		return "Pop2"
 	case ActPrint:
 		return "Print"
 	default:
@@ -587,7 +623,6 @@ func dump(states []*State) {
 		if s == nil {
 			continue
 		}
-		// 没有出边、也不是终止状态的空节点就不打印
 		if len(s.next) == 0 && !s.accept && !s.reject {
 			continue
 		}
@@ -606,23 +641,6 @@ func dump(states []*State) {
 	}
 }
 
-func machineKindToString(k MachineKind) string {
-	switch k {
-	case KindTWA:
-		return "twa"
-	case KindTM:
-		return "tm"
-	case KindPDA:
-		return "pda"
-	case KindTwoWayPDA:
-		return "2pda"
-	case KindTransducer:
-		return "transducer"
-	default:
-		return "unknown"
-	}
-}
-
 func writeDOT(states []*State, path string, kind MachineKind) error {
 	f, err := os.Create(path)
 	if err != nil {
@@ -632,7 +650,6 @@ func writeDOT(states []*State, path string, kind MachineKind) error {
 
 	fmt.Fprintln(f, "digraph FSM {")
 	fmt.Fprintln(f, `  rankdir=LR; node [shape=circle, fontname="Arial"];`)
-
 	for id := 1; id < len(states); id++ {
 		s := states[id]
 		if s == nil {
@@ -641,7 +658,6 @@ func writeDOT(states []*State, path string, kind MachineKind) error {
 		if len(s.next) == 0 && !s.accept && !s.reject {
 			continue
 		}
-
 		shape := "circle"
 		color := ""
 		if s.accept {
@@ -653,25 +669,20 @@ func writeDOT(states []*State, path string, kind MachineKind) error {
 			color = `, color="red"`
 		}
 
-		// ====== ★ 根据机器类型决定是否显示方向 ======
 		var lbl string
-		if kind == KindTransducer || kind == KindTM {
-			// TM / Trans 不显示方向，只显示 action
+		if kind == KindTransducer || kind == KindTM || kind == KindTwoWayPDA {
+			// TM / Transducer / 2PDA 都不显示方向
 			lbl = fmt.Sprintf("%d\\n[%s]", s.id, actionName(s.action))
 		} else {
-			// 其他机器保留方向
 			lbl = fmt.Sprintf("%d\\n[%s,%s]", s.id, actionName(s.action), dirStr(s.dir))
 		}
 
-		fmt.Fprintf(f, "  %d [label=\"%s\", shape=%s%s];\n",
-			s.id, lbl, shape, color)
+		fmt.Fprintf(f, "  %d [label=\"%s\", shape=%s%s];\n", s.id, lbl, shape, color)
 
 		for key, value := range s.next {
-			fmt.Fprintf(f, "  %d -> %d [label=\"%c\"];\n",
-				s.id, value.id, key)
+			fmt.Fprintf(f, "  %d -> %d [label=\"%c\"];\n", s.id, value.id, key)
 		}
 	}
-
 	fmt.Fprintln(f, "}")
 	return nil
 }
@@ -817,7 +828,7 @@ func main() {
 			continue
 		}
 		for sym, to := range s.next {
-			fmt.Printf("  %d --%q--> %d\n", id, sym, to.id)
+			fmt.Printf("  %d --'%c'--> %d\n", id, sym, to.id)
 		}
 	}
 	fmt.Println("=== END EDGES ===")
@@ -831,7 +842,8 @@ func main() {
 
 	base := filepath.Base(rulesPath)
 	dotName := fmt.Sprintf("%s.dot", strings.ReplaceAll(base, ".txt", ""))
-	if err := writeDOT(states, "dots"+"/"+dotName, kind); err != nil {
+	_ = os.MkdirAll("dots", 0755)
+	if err := writeDOT(states, "dots/"+dotName, kind); err != nil {
 		fmt.Println("dot error:", err)
 		return
 	}
