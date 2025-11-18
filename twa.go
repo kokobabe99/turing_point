@@ -70,6 +70,6 @@ func (m *TWAMachine) Run(tape []byte) (bool, error) {
 
 		q = nxt
 		step++
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }

@@ -1,28 +1,7 @@
-// 2PDA demo: L = { a^n b^n | n>=1 } U { a^n c^n | n>=1 }
-
-// 状态 1: 读取第一个字符，必须是 a
-1] Scan (a,2) (b,9) (c,9) (#,9)
-
-// 状态 2: still 在 a 区段
-// - 读到 a：继续 push1
-// - 读到 b：转入“b 分支”的 pop 阶段 (state 3)
-// - 读到 c：转入“c 分支”的 pop 阶段 (state 5)
-// - 遇到 '#'：说明没有后半段，reject
+1] Scan   (a,2) (b,9) (c,9) (#,9)
 2] Write1 (a,2) (b,3) (c,5) (#,9)
+3] Read1  (b,3) (c,9) (#,8)
+5] Read1  (c,5) (b,9) (#,8)
 
-// 状态 3: b 分支，pop a 对应的 b
-// - 读到 b：Pop1（弹一个 a），继续 stay in 3
-// - 读到 c：不允许（a^n b^m c^k 不在语言里），reject
-// - 读到 '#': 结束，转 8；由 empty-stack accept 来检查栈是否正好空
-3] Read1 (b,3) (c,9) (#,8)
-
-// 状态 5: c 分支，pop a 对应的 c
-// - 读到 c：Pop1，继续 5
-// - 读到 b：不允许（a^n c^m b^k 不在语言里），reject
-// - 读到 '#': 结束，转 8；由 empty-stack accept 来检查栈是否正好空
-5] Read1 (c,5) (b,9) (#,8)
-
-// 8: accept（2pda 模式下：两个栈都必须空）
-// 9: reject
 8] accept
 9] reject
