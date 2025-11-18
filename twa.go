@@ -54,13 +54,7 @@ func (m *TWAMachine) Run(tape []byte) (bool, error) {
 			head,
 		)
 
-		// 移动头
-		if nxt.dir == L {
-			head--
-		} else {
-			head++
-		}
-
+		// 先处理 accept/reject：进入终态时就结束，不再移动头
 		if nxt.accept {
 			return true, nil
 		}
@@ -68,8 +62,17 @@ func (m *TWAMachine) Run(tape []byte) (bool, error) {
 			return false, nil
 		}
 
+		if cur != '#' {
+			// 用当前状态的方向移动更合理（离开 q 时根据 q.dir 走）
+			if q.dir == L {
+				head--
+			} else {
+				head++
+			}
+		}
+
 		q = nxt
 		step++
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
 }

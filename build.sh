@@ -5,7 +5,7 @@ echo " Running ALL automata "
 echo "========================"
 
 echo
-echo ">>> TWA"
+echo ">>> TWA done"
 go run main.go twa rules/twa.txt "#abbaabba#"
 
 echo
@@ -17,7 +17,7 @@ echo ">>> PDA done"
 go run main.go pda rules/pda.txt "#aaabbb#"
 
 echo
-echo ">>> 2PDA"
+echo ">>> 2PDA done"
 go run main.go 2pda rules/2pda.txt "#aaabbb#"
 
 echo
