@@ -1,16 +1,16 @@
 digraph FSM {
   rankdir=LR; node [shape=circle, fontname="Arial"];
-  1 [label="1\n[Scan,R]", shape=circle];
+  1 [label="1\n[Scan]", shape=circle];
+  1 -> 2 [label="a"];
   1 -> 9 [label="b"];
   1 -> 9 [label="#"];
-  1 -> 2 [label="a"];
-  2 [label="2\n[Push1,R]", shape=circle];
+  2 [label="2\n[Push1]", shape=circle];
   2 -> 2 [label="a"];
   2 -> 3 [label="b"];
-  3 [label="3\n[Pop1,R]", shape=circle];
+  3 [label="3\n[Pop1]", shape=circle];
   3 -> 3 [label="b"];
   3 -> 8 [label="#"];
   3 -> 9 [label="a"];
-  8 [label="8\n[Scan,R]", shape=doublecircle, color="green"];
-  9 [label="9\n[Scan,R]", shape=octagon, color="red"];
+  8 [label="8\n[Scan]", shape=doublecircle, color="green"];
+  9 [label="9\n[Scan]", shape=octagon, color="red"];
 }

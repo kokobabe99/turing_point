@@ -8,7 +8,22 @@ import (
 	"strings"
 )
 
-/* ===================== Machine 工厂 ===================== */
+func stackToString(st []byte) string {
+	if len(st) == 0 {
+		return "[]"
+	}
+	out := "["
+	for i, v := range st {
+		out += fmt.Sprintf("%c", v)
+		if i != len(st)-1 {
+			out += ","
+		}
+	}
+	out += "]"
+	return out
+}
+
+/* ===================== Machine ===================== */
 
 func newMachine(kind MachineKind, states []*State, start *State) (Machine, error) {
 	switch kind {

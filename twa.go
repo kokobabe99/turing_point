@@ -21,7 +21,6 @@ func (m *TWAMachine) Kind() MachineKind { return KindTWA }
 func (m *TWAMachine) Dump() { dumpStates(m.states) }
 
 func (m *TWAMachine) WriteDOT(path string) error {
-	// TWA 显示方向
 	return writeDOTCommon(m.states, path, true)
 }
 
@@ -40,7 +39,6 @@ func (m *TWAMachine) Run(tape []byte) (bool, error) {
 
 		nxt, ok := q.next[cur]
 		if !ok {
-			// 没有转移就 reject
 			return false, nil
 		}
 
@@ -54,7 +52,6 @@ func (m *TWAMachine) Run(tape []byte) (bool, error) {
 			head,
 		)
 
-		// 先处理 accept/reject：进入终态时就结束，不再移动头
 		if nxt.accept {
 			return true, nil
 		}
@@ -63,7 +60,6 @@ func (m *TWAMachine) Run(tape []byte) (bool, error) {
 		}
 
 		if cur != '#' {
-			// 用当前状态的方向移动更合理（离开 q 时根据 q.dir 走）
 			if q.dir == L {
 				head--
 			} else {

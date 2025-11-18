@@ -21,7 +21,6 @@ func (m *TMMachine) Kind() MachineKind { return KindTM }
 func (m *TMMachine) Dump() { dumpStates(m.states) }
 
 func (m *TMMachine) WriteDOT(path string) error {
-	// TM 不显示方向（你之前要求的）
 	return writeDOTCommon(m.states, path, false)
 }
 
@@ -43,7 +42,6 @@ func (m *TMMachine) Run(tape []byte) (bool, error) {
 			return false, nil
 		}
 
-		// 写 tape
 		if q.action == ActWriteTape {
 			if q.writeSym != 0 {
 				tape[head] = q.writeSym
@@ -60,7 +58,6 @@ func (m *TMMachine) Run(tape []byte) (bool, error) {
 			head,
 		)
 
-		// TM 头按方向走
 		if nxt.dir == L {
 			head--
 		} else {

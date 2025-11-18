@@ -21,98 +21,123 @@ func (m *TwoPDAMachine) Kind() MachineKind { return KindTwoPDA }
 func (m *TwoPDAMachine) Dump() { dumpStates(m.states) }
 
 func (m *TwoPDAMachine) WriteDOT(path string) error {
-	// 2PDA：不需要显示方向，只显示动作
 	return writeDOTCommon(m.states, path, false)
 }
 
 func (m *TwoPDAMachine) Run(tape []byte) (bool, error) {
 	q := m.start
-	head := 1 // 跳过左边第一个 '#'
+	head := 1
 	var stack1, stack2 []byte
 	step := 1
 
 	fmt.Println("== TRACE START ==")
-
 	for {
 		if head < 0 || head >= len(tape) {
 			return false, fmt.Errorf("2PDA head out of bounds: %d", head)
 		}
-
 		displayTapeWithHead(string(tape), head)
 		cur := tape[head]
 
-		// 查转移
 		nxt, ok := q.next[cur]
 		if !ok {
-			// 当前符号没有出边，直接 REJECT
+			// 没有出边：直接 REJECT
+			fmt.Printf("step=%-4d state=%-3d read=%q  NO-TRANSITION  |S1|=%s |S2|=%s -> REJECT\n",
+				step, q.id, cur, stackToString(stack1), stackToString(stack2))
 			return false, nil
 		}
 
-		// ===== 执行动作（只有 5 种：Scan/Push1/Pop1/Push2/Pop2） =====
+		// 基本信息
+		fmt.Printf("step=%-4d state=%-3d read=%q next=%-3d head=%-2d\n",
+			step, q.id, cur, nxt.id, head)
+
 		switch q.action {
 		case ActPush1:
-			// push1：用 stackSym 作为入栈符号，通常 stackSym 是规则里第一个 (sym,...) 的 sym
+			before := stackToString(stack1)
 			if q.stackSym == 0 || cur == q.stackSym {
 				stack1 = append(stack1, q.stackSym)
+				fmt.Printf("    2PDA S1: PUSH %q  before=%s  after=%s\n",
+					q.stackSym, before, stackToString(stack1))
+			} else {
+				fmt.Printf("    2PDA S1: PUSH skipped (cur=%q != stackSym=%q)  stack=%s\n",
+					cur, q.stackSym, before)
 			}
+
 		case ActPop1:
-			// 在 '#' 上不 pop，让最后由 empty-stack accept 判断
 			if cur != '#' {
-				// 栈空或者栈顶不符合预期，都是“输入不合法” => 直接 REJECT
+				before := stackToString(stack1)
 				if len(stack1) == 0 {
+					fmt.Printf("    2PDA S1: POP (stack empty)  before=%s -> REJECT\n", before)
 					return false, nil
 				}
 				top := stack1[len(stack1)-1]
 				if q.stackSym != 0 && top != q.stackSym {
+					fmt.Printf("    2PDA S1: POP expected=%q got=%q  before=%s -> REJECT\n",
+						q.stackSym, top, before)
 					return false, nil
 				}
 				stack1 = stack1[:len(stack1)-1]
+				fmt.Printf("    2PDA S1: POP %q  before=%s  after=%s\n",
+					top, before, stackToString(stack1))
+			} else {
+				fmt.Printf("    2PDA S1: POP on '#' -> skipped  stack=%s\n", stackToString(stack1))
 			}
+
 		case ActPush2:
+			before := stackToString(stack2)
 			if q.stackSym == 0 || cur == q.stackSym {
 				stack2 = append(stack2, q.stackSym)
+				fmt.Printf("    2PDA S2: PUSH %q  before=%s  after=%s\n",
+					q.stackSym, before, stackToString(stack2))
+			} else {
+				fmt.Printf("    2PDA S2: PUSH skipped (cur=%q != stackSym=%q)  stack=%s\n",
+					cur, q.stackSym, before)
 			}
+
 		case ActPop2:
 			if cur != '#' {
+				before := stackToString(stack2)
 				if len(stack2) == 0 {
+					fmt.Printf("    2PDA S2: POP (stack empty)  before=%s -> REJECT\n", before)
 					return false, nil
 				}
 				top := stack2[len(stack2)-1]
 				if q.stackSym != 0 && top != q.stackSym {
+					fmt.Printf("    2PDA S2: POP expected=%q got=%q  before=%s -> REJECT\n",
+						q.stackSym, top, before)
 					return false, nil
 				}
 				stack2 = stack2[:len(stack2)-1]
+				fmt.Printf("    2PDA S2: POP %q  before=%s  after=%s\n",
+					top, before, stackToString(stack2))
+			} else {
+				fmt.Printf("    2PDA S2: POP on '#' -> skipped  stack=%s\n", stackToString(stack2))
 			}
-		case ActScan, ActNone:
-			// 不操作栈
+
 		default:
-			// 2PDA 不应该出现其他动作
-			return false, fmt.Errorf("2PDA: unsupported action %v at state %d", q.action, q.id)
+			fmt.Printf("    2PDA S: (no stack op) S1=%s  S2=%s\n",
+				stackToString(stack1), stackToString(stack2))
 		}
 
-		// 打 trace：把两个栈的长度也打印出来方便 debug
-		fmt.Printf("step=%-4d state=%-3d read=%q next=%-3d head=%-2d  |S1|=%d |S2|=%d\n",
-			step, q.id, cur, nxt.id, head, len(stack1), len(stack2),
-		)
-
-		// ===== 处理接受 / 拒绝 =====
-		if nxt.accept {
-			// 2-stack empty-stack accept：两个栈都必须空
-			if len(stack1) == 0 && len(stack2) == 0 {
-				return true, nil
-			}
-			// 栈没空直接视为 REJECT
-			return false, nil
-		}
-		if nxt.reject {
-			return false, nil
-		}
-
-		// ===== 头移动逻辑：2PDA 一律 one-way，只在读到非 '#' 时右移 =====
 		if cur != '#' {
 			head++
 		}
-		// （如果你想最后一个 '#' 也右移一次，可以改成：if head < len(tape)-1 { head++ }）
+
+		if nxt.accept {
+			// 2-stack empty-stack accept
+			if len(stack1) == 0 && len(stack2) == 0 {
+				fmt.Printf("    2PDA ACCEPT at state %d with S1=%s S2=%s\n",
+					nxt.id, stackToString(stack1), stackToString(stack2))
+				return true, nil
+			}
+			fmt.Printf("    2PDA REJECT at state %d because stacks not empty: S1=%s S2=%s\n",
+				nxt.id, stackToString(stack1), stackToString(stack2))
+			return false, nil
+		}
+		if nxt.reject {
+			fmt.Printf("    2PDA REJECT at explicit reject state %d, S1=%s S2=%s\n",
+				nxt.id, stackToString(stack1), stackToString(stack2))
+			return false, nil
+		}
 
 		q = nxt
 		step++

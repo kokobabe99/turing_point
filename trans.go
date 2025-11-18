@@ -22,7 +22,6 @@ func (m *TransducerMachine) Kind() MachineKind { return KindTransducer }
 func (m *TransducerMachine) Dump() { dumpStates(m.states) }
 
 func (m *TransducerMachine) WriteDOT(path string) error {
-	// 不显示方向
 	return writeDOTCommon(m.states, path, false)
 }
 
@@ -40,13 +39,11 @@ func (m *TransducerMachine) Run(tape []byte) (bool, error) {
 		displayTapeWithHead(string(tape), head)
 		cur := tape[head]
 
-		// 最后一个 '#' 直接结束
 		if cur == '#' && head == len(tape)-1 && q.action != ActPrint {
 			fmt.Printf("Output tape: %s\n", string(m.output))
 			return true, nil
 		}
 
-		// Print 特殊
 		if q.action == ActPrint {
 			var nxt *State
 			if q.next != nil {
@@ -89,7 +86,6 @@ func (m *TransducerMachine) Run(tape []byte) (bool, error) {
 			continue
 		}
 
-		// 普通转移
 		nxt, ok := q.next[cur]
 		if !ok {
 			return false, nil
@@ -104,7 +100,6 @@ func (m *TransducerMachine) Run(tape []byte) (bool, error) {
 			head,
 		)
 
-		// transducer: Scan 时遇到非 '#' 才右移
 		if q.action == ActScan && cur != '#' {
 			head++
 		}

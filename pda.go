@@ -5,8 +5,6 @@ import (
 	"time"
 )
 
-/* ===================== 1-stack PDA Machine ===================== */
-
 type PDAMachine struct {
 	states []*State
 	start  *State
@@ -21,7 +19,6 @@ func (m *PDAMachine) Kind() MachineKind { return KindPDA }
 func (m *PDAMachine) Dump() { dumpStates(m.states) }
 
 func (m *PDAMachine) WriteDOT(path string) error {
-	// PDA 不显示方向，只显示动作
 	return writeDOTCommon(m.states, path, false)
 }
 
@@ -34,47 +31,57 @@ func (m *PDAMachine) Run(tape []byte) (bool, error) {
 	fmt.Println("== TRACE START ==")
 	for {
 		if head < 0 || head >= len(tape) {
-			return false, fmt.Errorf("head out of bounds: %d", head)
+			return false, fmt.Errorf("PDA head out of bounds: %d", head)
 		}
 		displayTapeWithHead(string(tape), head)
 		cur := tape[head]
 
 		nxt, ok := q.next[cur]
 		if !ok {
-			// 无转移：reject
+			fmt.Printf("step=%-4d state=%-3d read=%q  NO-TRANSITION  |S|=%s -> REJECT\n",
+				step, q.id, cur, stackToString(stack))
 			return false, nil
 		}
 
-		// 执行动作（只用 Stack1）
+		fmt.Printf("step=%-4d state=%-3d read=%q next=%-3d head=%-2d\n",
+			step, q.id, cur, nxt.id, head)
+
 		switch q.action {
 		case ActPush1:
+			before := stackToString(stack)
 			if q.stackSym == 0 || cur == q.stackSym {
 				stack = append(stack, q.stackSym)
+				fmt.Printf("    PDA S: PUSH %q  before=%s  after=%s\n",
+					q.stackSym, before, stackToString(stack))
+			} else {
+				fmt.Printf("    PDA S: PUSH skipped (cur=%q != stackSym=%q)  stack=%s\n",
+					cur, q.stackSym, before)
 			}
+
 		case ActPop1:
-			// 在 '#' 上不 pop，让 empty-stack 接受来判断
 			if cur != '#' {
+				before := stackToString(stack)
 				if len(stack) == 0 {
-					return false, fmt.Errorf("PDA stack underflow at state %d", q.id)
+					fmt.Printf("    PDA S: POP  (stack empty)  before=%s -> REJECT\n", before)
+					return false, nil
 				}
 				top := stack[len(stack)-1]
 				if q.stackSym != 0 && top != q.stackSym {
-					return false, fmt.Errorf("PDA stack unexpected top %q at state %d", top, q.id)
+					fmt.Printf("    PDA S: POP  expected=%q got=%q  before=%s -> REJECT\n",
+						q.stackSym, top, before)
+					return false, nil
 				}
 				stack = stack[:len(stack)-1]
+				fmt.Printf("    PDA S: POP %q  before=%s  after=%s\n",
+					top, before, stackToString(stack))
+			} else {
+				fmt.Printf("    PDA S: POP on '#' -> skipped  stack=%s\n", stackToString(stack))
 			}
+
+		default:
+			fmt.Printf("    PDA S: (no stack op) stack=%s\n", stackToString(stack))
 		}
 
-		fmt.Printf("step  state       read  next  head\n")
-		fmt.Printf("%-5d %-10s  %-4s  %-4d  %d\n",
-			step,
-			fmt.Sprintf("%d", q.id),
-			string(cur),
-			nxt.id,
-			head,
-		)
-
-		// 头只向右移动（one-way），遇到 '#' 可以不动
 		if cur != '#' {
 			head++
 		}
@@ -82,16 +89,21 @@ func (m *PDAMachine) Run(tape []byte) (bool, error) {
 		if nxt.accept {
 			// empty-stack accept
 			if len(stack) == 0 {
+				fmt.Printf("    PDA ACCEPT at state %d with empty stack\n", nxt.id)
 				return true, nil
 			}
+			fmt.Printf("    PDA REJECT at state %d because stack not empty: %s\n",
+				nxt.id, stackToString(stack))
 			return false, nil
 		}
 		if nxt.reject {
+			fmt.Printf("    PDA REJECT at explicit reject state %d, stack=%s\n",
+				nxt.id, stackToString(stack))
 			return false, nil
 		}
 
 		q = nxt
 		step++
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(200 * time.Millisecond)
 	}
 }

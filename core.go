@@ -83,8 +83,8 @@ type State struct {
 
 	action   Action
 	writeSym byte
-	stackSym byte // 对 Push/Pop 状态：要 push/pop 的符号
-	printSym byte // Print 状态输出的符号
+	stackSym byte //  Push/Pop
+	printSym byte
 }
 
 type rawLine struct {
@@ -97,7 +97,7 @@ type rawLine struct {
 	outSym byte
 }
 
-/* ===================== Machine 接口 ===================== */
+/* ===================== Machine interface ===================== */
 
 type Machine interface {
 	Kind() MachineKind
@@ -106,7 +106,7 @@ type Machine interface {
 	WriteDOT(path string) error
 }
 
-/* ===================== 解析工具 ===================== */
+/* ===================== parse ===================== */
 
 func parseDirWord(w string) (Move, bool) {
 	switch strings.ToLower(strings.TrimSpace(w)) {
@@ -175,7 +175,7 @@ func parseMode(s string) (Move, Action, error) {
 	return d, a, nil
 }
 
-/* ===================== 规则解析 ===================== */
+/* ===================== parse ===================== */
 
 func parseRules(path string) ([]rawLine, int, error) {
 	f, err := os.Open(path)
@@ -220,7 +220,6 @@ func parseRules(path string) ([]rawLine, int, error) {
 			continue
 		}
 
-		// 普通规则行
 		parts := strings.SplitN(line, "]", 2)
 		if len(parts) != 2 {
 			return nil, 0, fmt.Errorf("line %d: bad syntax", ln)
@@ -327,7 +326,7 @@ func parseRules(path string) ([]rawLine, int, error) {
 	return lines, maxID, nil
 }
 
-/* ===================== 图构建 ===================== */
+/* ===================== Graph ===================== */
 
 func buildStates(lines []rawLine, maxID int) ([]*State, *State, error) {
 	used := make(map[int]bool)
@@ -396,7 +395,7 @@ func buildStates(lines []rawLine, maxID int) ([]*State, *State, error) {
 	return st, start, nil
 }
 
-/* ===================== dump & DOT 共用 ===================== */
+/* ===================== dump & DOT ===================== */
 
 func actionName(a Action) string {
 	switch a {
@@ -486,7 +485,7 @@ func writeDOTCommon(states []*State, path string, showDir bool) error {
 	return nil
 }
 
-/* ===================== Tape 显示 ===================== */
+/* ===================== Tape  ===================== */
 
 func highlightIndex(tape string, head int) string {
 	if head < 0 || head >= len(tape) {
@@ -508,7 +507,7 @@ func displayTapeWithHead(tape string, head int) {
 	fmt.Println("Tape :", highlightIndex(tape, head))
 }
 
-/* ===================== Tape & Kind 解析 ===================== */
+/* ===================== Tape & Kind ===================== */
 
 func parseTapeArg(arg string) ([]byte, error) {
 	s := strings.TrimSpace(arg)
